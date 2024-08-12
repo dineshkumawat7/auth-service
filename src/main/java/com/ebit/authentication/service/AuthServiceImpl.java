@@ -44,6 +44,7 @@ public class AuthServiceImpl implements AuthService, OAuth2UserService<OidcUserR
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         user.setEnable(true);
+        user.setProvider("local");
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         if (roleRepository.findByName("ROLE_USER") == null) {
             createUserRole();
@@ -90,6 +91,7 @@ public class AuthServiceImpl implements AuthService, OAuth2UserService<OidcUserR
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         user.setEnable(true);
+        user.setProvider("google");
         user.setPassword("oauth2");
         user.setImgUrl(oidcUser.getPicture());
         if(roleRepository.findByName("ROLE_USER")  == null){

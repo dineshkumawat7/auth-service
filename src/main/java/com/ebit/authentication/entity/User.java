@@ -49,6 +49,9 @@ public class User {
     @Column(name = "img_url")
     private String imgUrl;
 
+    @Column(name = "provider")
+    private String provider;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "users_roles",
             joinColumns = {@JoinColumn(name = "USER_ID", referencedColumnName = "ID")},
