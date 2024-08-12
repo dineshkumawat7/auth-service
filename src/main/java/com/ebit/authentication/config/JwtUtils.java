@@ -13,8 +13,8 @@ import java.util.function.Function;
 public class JwtUtils {
     @Value("${jwt.secret}")
     private String secret;
-    @Value("${jwt.expiration}")
-    private String expiration;
+
+    private long expiration = 1000 * 10 * 60 *60;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);

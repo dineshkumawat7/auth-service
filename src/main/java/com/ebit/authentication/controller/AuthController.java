@@ -63,16 +63,16 @@ public class AuthController {
     }
 
     @PostMapping("/authenticate")
-    public ResponseEntity<LoginResponse> authenticate(@Valid @RequestBody AuthRequestDto authRequestDto) throws Exception {
-        LoginResponse response = new LoginResponse();
-        Authentication authentication = authenticationManager.authenticate(new
-                UsernamePasswordAuthenticationToken(authRequestDto.getUsername(), authRequestDto.getPassword()));
-        if (authentication.isAuthenticated()) {
-            String token = jwtUtils.generateToken(authRequestDto.getUsername());
-            logger.info("Authentication success with username '{}'", authRequestDto.getUsername());
-            response.setToken(token);
-        }
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<?> authenticate(@Valid @RequestBody AuthRequestDto authRequestDto) throws Exception {
+            LoginResponse response = new LoginResponse();
+            Authentication authentication = authenticationManager.authenticate(new
+                    UsernamePasswordAuthenticationToken(authRequestDto.getUsername(), authRequestDto.getPassword()));
+            if (authentication.isAuthenticated()) {
+                String token = jwtUtils.generateToken(authRequestDto.getUsername());
+                logger.info("Authentication success with username '{}'", authRequestDto.getUsername());
+                response.setToken(token);
+            }
+            return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/current-user")

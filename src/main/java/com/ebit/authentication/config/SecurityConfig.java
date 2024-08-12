@@ -52,7 +52,8 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/user/**").hasRole("USER")
                         .anyRequest().authenticated())
-                .oauth2Login(Customizer.withDefaults())
+                .oauth2Login(google -> google
+                        .loginPage("/login"))
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
                 .authenticationProvider(authenticationProvider());
         return http.build();
