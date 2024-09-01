@@ -16,41 +16,27 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", unique = true, nullable = false)
     private Long id;
-
-    @Column(name = "username")
     private String username;
-
-    @Column(name = "first_name", nullable = false)
     private String firstName;
-
-    @Column(name = "last_name")
     private String lastName;
-
-    @Column(name = "phone", nullable = false)
     private String phone;
-
     @Column(name = "email", unique = true, nullable = false)
     private String email;
-
-    @Column(name = "password")
+    @Column(name = "password", nullable = false)
     private String password;
-
-    @Column(name = "is_enable")
+    @Column(nullable = false)
     private boolean isEnable;
-
     @Column(name = "created_at")
     @CreationTimestamp
     private LocalDateTime createdAt;
-
     @Column(name = "updated_at")
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-
-    @Column(name = "img_url")
     private String imgUrl;
-
-    @Column(name = "provider")
-    private String provider;
+    @Column(name = "oauth2_id")
+    private String oauth2Id;
+    @Column(name = "oauth2_provider")
+    private String oauth2Provider;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "users_roles",

@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UserAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException e, WebRequest request){
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException e, WebRequest request) {
         ErrorResponse response = new ErrorResponse();
         response.setStatusCode(HttpStatus.CONFLICT.value());
         response.setStatus("error");
@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception e, WebRequest request){
+    public ResponseEntity<ErrorResponse> handleException(Exception e, WebRequest request) {
         ErrorResponse response = new ErrorResponse();
         response.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
         response.setStatus("error");
@@ -46,7 +46,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<String> handleExpiredJwtException(ExpiredJwtException exception, WebRequest request){
+    public ResponseEntity<String> handleExpiredJwtException(ExpiredJwtException exception, WebRequest request) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(exception.getMessage());
     }
 }

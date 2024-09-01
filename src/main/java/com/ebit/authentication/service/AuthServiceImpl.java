@@ -1,28 +1,33 @@
 package com.ebit.authentication.service;
 
+import com.ebit.authentication.config.JwtUtils;
 import com.ebit.authentication.entity.Role;
 import com.ebit.authentication.entity.User;
-import com.ebit.authentication.payloads.UserDto;
+import com.ebit.authentication.payloads.AuthRequestDto;
+import com.ebit.authentication.payloads.OAuth2UserDto;
+import com.ebit.authentication.payloads.UserRegistrationDto;
+import com.ebit.authentication.payloads.UserUpdateDto;
 import com.ebit.authentication.repository.AuthRepository;
 import com.ebit.authentication.repository.RoleRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
-public class AuthServiceImpl implements AuthService, OAuth2UserService<OidcUserRequest, OidcUser> {
+@Slf4j
+public class AuthServiceImpl implements AuthService {
     @Autowired
     private AuthRepository authRepository;
     @Autowired
@@ -33,72 +38,110 @@ public class AuthServiceImpl implements AuthService, OAuth2UserService<OidcUserR
     private RoleRepository roleRepository;
     @Autowired
     private AuthenticationManager authenticationManager;
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @Override
-    public User createUser(UserDto userDto) {
-        User user = new User();
-        user.setFirstName(userDto.getFirstName());
-        user.setLastName(userDto.getLastName());
-        user.setEmail(userDto.getEmail());
-        user.setPhone(userDto.getPhone());
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-        user.setEnable(true);
-        user.setProvider("local");
-        user.setPassword(passwordEncoder.encode(userDto.getPassword()));
-        if (roleRepository.findByName("ROLE_USER") == null) {
-            createUserRole();
+    public User saveOrUpdateUser(Object userDto) {
+        if(roleRepository.findByName("ROLE_USER") == null){
+            Role role = new Role();
+            role.setName("ROLE_USER");
+            roleRepository.save(role);
         }
-        Role role = roleRepository.findByName("ROLE_USER");
-        user.setRoles(Arrays.asList(role));
-        User createdUser = authRepository.save(user);
-        return modelMapper.map(createdUser, User.class);
-    }
-
-    private Role createUserRole(){
-        Role role = new Role();
-        role.setName("USER");
-        return roleRepository.save(role);
+        Optional<User> existingUser = Optional.empty();
+        if (userDto instanceof OAuth2UserDto oAuth2UserDto) {
+            existingUser = authRepository.findByEmail(oAuth2UserDto.getEmail());
+            if (existingUser.isPresent()) {
+                User userToUpdate = existingUser.get();
+                if (userToUpdate.getOauth2Id() == null) {
+                    userToUpdate.setOauth2Id(oAuth2UserDto.getOauth2Id());
+                    userToUpdate.setOauth2Provider(oAuth2UserDto.getOauth2Provider());
+                    userToUpdate.setImgUrl(oAuth2UserDto.getImgUrl());
+                } else if (!userToUpdate.getOauth2Provider().equals(oAuth2UserDto.getOauth2Provider())) {
+                    throw new IllegalArgumentException("This email is already associated with another OAuth2 provider.");
+                }
+                User updatedOauth2User = authRepository.save(userToUpdate);
+                log.info("existing oauth2 user updated with email: {} and provider: {}", updatedOauth2User.getEmail(), updatedOauth2User.getOauth2Provider());
+                return updatedOauth2User;
+            } else {
+                User newUser = new User();
+                newUser.setUsername(UUID.randomUUID().toString());
+                newUser.setFirstName(oAuth2UserDto.getFirstName());
+                newUser.setLastName(oAuth2UserDto.getLastName());
+                newUser.setEmail(oAuth2UserDto.getEmail());
+                newUser.setPhone(oAuth2UserDto.getPhone());
+                newUser.setPassword(passwordEncoder.encode("oauth2"));
+                newUser.setImgUrl(oAuth2UserDto.getImgUrl());
+                newUser.setEnable(true);
+                newUser.setCreatedAt(LocalDateTime.now());
+                newUser.setRoles(Collections.singletonList(roleRepository.findByName("ROLE_USER")));
+                newUser.setOauth2Id(oAuth2UserDto.getOauth2Id());
+                newUser.setOauth2Provider(oAuth2UserDto.getOauth2Provider());
+                User createdOAuth2User = authRepository.save(newUser);
+                log.info("new oauth2 user registration success with email: {} and provider: {}", createdOAuth2User.getEmail(), createdOAuth2User.getOauth2Provider());
+                return createdOAuth2User;
+            }
+        } else if (userDto instanceof UserRegistrationDto registrationDto) {
+            existingUser = authRepository.findByEmail(registrationDto.getEmail());
+            if (existingUser.isPresent()) {
+                throw new IllegalArgumentException("An account with this email already exists. Please log in or use a different email.");
+            }
+            User newUser = new User();
+            newUser.setUsername(UUID.randomUUID().toString());
+            newUser.setFirstName(registrationDto.getFirstName());
+            newUser.setLastName(registrationDto.getLastName());
+            newUser.setEmail(registrationDto.getEmail());
+            newUser.setPhone(registrationDto.getPhone());
+            newUser.setPassword(passwordEncoder.encode(registrationDto.getPassword()));
+            newUser.setImgUrl(registrationDto.getImgUrl());
+            newUser.setEnable(true);
+            newUser.setRoles(Collections.singletonList(roleRepository.findByName("ROLE_USER")));
+            newUser.setCreatedAt(LocalDateTime.now());
+            User createdStandardUser = authRepository.save(newUser);
+            log.info("new standard user registration success with email: {}", createdStandardUser.getEmail());
+            return createdStandardUser;
+        } else if (userDto instanceof UserUpdateDto updateDto) {
+            existingUser = authRepository.findById(updateDto.getId());
+            if (existingUser.isPresent()) {
+                User user = existingUser.get();
+                user.setFirstName(updateDto.getFirstName());
+                user.setLastName(updateDto.getLastName());
+                user.setPhone(updateDto.getPhone());
+                user.setEmail(updateDto.getEmail());
+                user.setImgUrl(updateDto.getImgUrl());
+                user.setUpdatedAt(LocalDateTime.now());
+                user.setPassword(passwordEncoder.encode(updateDto.getPassword()));
+                User updatedUser = authRepository.save(user);
+                log.info("existing standard user updated with email: {}", updatedUser.getEmail());
+                return updatedUser;
+            } else {
+                throw new IllegalArgumentException("User not found.");
+            }
+        }
+        throw new IllegalArgumentException("Unsupported user DTO type");
     }
 
     @Override
-    public User updateUser(Long id, UserDto userDto) {
-        Optional<User> existingUser = authRepository.findById(id);
-        if(existingUser.isPresent()){
-            User user = existingUser.get();
-            user.setFirstName(userDto.getFirstName());
-            user.setLastName(userDto.getLastName());
-            user.setEmail(userDto.getEmail());
-            user.setPhone(userDto.getPhone());
-            user.setUpdatedAt(LocalDateTime.now());
-            User updatedUser = authRepository.save(user);
-            return modelMapper.map(updatedUser, User.class);
-        }else{
-            throw new UsernameNotFoundException("user not found with id '" + id + "'");
+    public String authenticate(AuthRequestDto authRequestDto) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(authRequestDto.getEmail(), authRequestDto.getPassword()));
+        if(authentication.isAuthenticated()){
+            return jwtUtils.generateToken(authRequestDto.getEmail());
         }
+        throw new BadCredentialsException("invalid username/email or password");
     }
 
     @Override
-    public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
-        OidcUserService delegate = new OidcUserService();
-        OidcUser oidcUser = delegate.loadUser(userRequest);
-        User user = new User();
-        user.setUsername(oidcUser.getSubject());
-        user.setFirstName(oidcUser.getGivenName());
-        user.setLastName(oidcUser.getFamilyName());
-        user.setEmail(oidcUser.getEmail());
-        user.setPhone(oidcUser.getPhoneNumber());
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-        user.setEnable(true);
-        user.setProvider("google");
-        user.setPassword("oauth2");
-        user.setImgUrl(oidcUser.getPicture());
-        if(roleRepository.findByName("ROLE_USER")  == null){
-            createUserRole();
+    public boolean changePassword(String email, String oldPassword, String newPassword) {
+        Optional<User> optionalUser = authRepository.findByEmail(email);
+        if(optionalUser.isPresent()){
+            User user = optionalUser.get();
+            if(!passwordEncoder.matches(oldPassword, user.getPassword())){
+                throw new IllegalArgumentException("old password is incorrect");
+            }
+            user.setPassword(passwordEncoder.encode(newPassword));
+            return true;
         }
-        Role role = roleRepository.findByName("ROLE_USER");
-        user.setRoles(Arrays.asList(role));
-        return null;
+        throw new IllegalArgumentException("user not found with email: " + email);
     }
 }

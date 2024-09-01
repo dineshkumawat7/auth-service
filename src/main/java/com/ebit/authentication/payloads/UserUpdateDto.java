@@ -7,7 +7,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class UserDto {
+public class UserUpdateDto {
+    @NotNull(message = "id is mandatory")
+    private Long id;
     @NotNull(message = "first name is mandatory")
     private String firstName;
     private String lastName;
@@ -21,4 +23,5 @@ public class UserDto {
     @NotNull(message = "password is mandatory")
     @Size(min = 5, message = "password must be at least 5 character")
     private String password;
+    private String imgUrl;
 }
