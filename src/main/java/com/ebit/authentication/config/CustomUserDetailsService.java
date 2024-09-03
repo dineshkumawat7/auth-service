@@ -12,19 +12,22 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
     @Autowired
     private AuthRepository authRepository;
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = authRepository.findByEmail(username);
-        if(user == null){
-            throw new UsernameNotFoundException("user not found with email " + username);
-        }else {
+        Optional<User> existingUser = authRepository.findByEmail(username);
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
             return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), mapRolesToAuthorities(user.getRoles()));
+        } else {
+            throw new UsernameNotFoundException("user not found with email " + username);
         }
     }
 
