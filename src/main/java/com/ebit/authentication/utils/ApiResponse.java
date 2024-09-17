@@ -1,17 +1,16 @@
 package com.ebit.authentication.utils;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Data
+@Builder
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class ApiResponse<T> {
     private LocalDateTime timestamp;
-    private Integer statusCode;
     private String status;
     private String message;
     private T data;

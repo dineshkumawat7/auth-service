@@ -3,6 +3,7 @@ package com.ebit.authentication.service;
 import com.ebit.authentication.config.JwtUtils;
 import com.ebit.authentication.entity.Role;
 import com.ebit.authentication.entity.User;
+import com.ebit.authentication.exception.UserAlreadyExistsException;
 import com.ebit.authentication.payloads.AuthRequestDto;
 import com.ebit.authentication.payloads.OAuth2UserDto;
 import com.ebit.authentication.payloads.UserRegistrationDto;
@@ -10,7 +11,6 @@ import com.ebit.authentication.payloads.UserUpdateDto;
 import com.ebit.authentication.repository.AuthRepository;
 import com.ebit.authentication.repository.RoleRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.coyote.BadRequestException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -57,15 +56,13 @@ public class AuthServiceImpl implements AuthService {
                     userToUpdate.setOauth2Id(oAuth2UserDto.getOauth2Id());
                     userToUpdate.setOauth2Provider(oAuth2UserDto.getOauth2Provider());
                     userToUpdate.setImgUrl(oAuth2UserDto.getImgUrl());
-                } else if (!userToUpdate.getOauth2Provider().equals(oAuth2UserDto.getOauth2Provider())) {
-                    throw new IllegalArgumentException("This email is already associated with another OAuth2 provider.");
                 }
                 User updatedOauth2User = authRepository.save(userToUpdate);
                 log.info("existing oauth2 user updated with email: {} and provider: {}", updatedOauth2User.getEmail(), updatedOauth2User.getOauth2Provider());
                 return updatedOauth2User;
             } else {
                 User newUser = new User();
-                newUser.setUsername(UUID.randomUUID().toString());
+                newUser.setUsername(extractUsernameFromEmail(oAuth2UserDto.getEmail()));
                 newUser.setFirstName(oAuth2UserDto.getFirstName());
                 newUser.setLastName(oAuth2UserDto.getLastName());
                 newUser.setEmail(oAuth2UserDto.getEmail());
@@ -84,10 +81,11 @@ public class AuthServiceImpl implements AuthService {
         } else if (userDto instanceof UserRegistrationDto registrationDto) {
             existingUser = authRepository.findByEmail(registrationDto.getEmail());
             if (existingUser.isPresent()) {
-                throw new IllegalArgumentException("An account with this email already exists. Please log in or use a different email.");
+                log.info("user conflict with email: {}" , registrationDto.getEmail());
+                throw new UserAlreadyExistsException("An account with this email already exists. Please log in or use a different email.");
             }
             User newUser = new User();
-            newUser.setUsername(UUID.randomUUID().toString());
+            newUser.setUsername(extractUsernameFromEmail(registrationDto.getEmail()));
             newUser.setFirstName(registrationDto.getFirstName());
             newUser.setLastName(registrationDto.getLastName());
             newUser.setEmail(registrationDto.getEmail());
@@ -119,6 +117,14 @@ public class AuthServiceImpl implements AuthService {
             }
         }
         throw new IllegalArgumentException("Unsupported user DTO type");
+    }
+
+    private String extractUsernameFromEmail(String email){
+        if(email != null && email.contains("@")){
+            int index = email.indexOf("@");
+            return email.substring(0, index);
+        }
+        throw new IllegalArgumentException("Invalid email address");
     }
 
     @Override

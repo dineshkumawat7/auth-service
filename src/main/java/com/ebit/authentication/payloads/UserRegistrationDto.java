@@ -4,9 +4,13 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
+import lombok.*;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class UserRegistrationDto {
     @NotNull(message = "first name is mandatory")
     private String firstName;
@@ -16,7 +20,7 @@ public class UserRegistrationDto {
     @Positive(message = "invalid phone number")
     private String phone;
     @NotNull(message = "email is mandatory")
-    @Email
+    @Email(message = "invalid email address")
     private String email;
     @NotNull(message = "password is mandatory")
     @Size(min = 5, message = "password must be at least 5 character")

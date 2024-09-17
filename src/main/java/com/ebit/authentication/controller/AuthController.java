@@ -38,30 +38,19 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> saveOrUpdateUser(@Valid @RequestBody UserRegistrationDto userRegistrationDto) {
-        try {
-            User user = authService.saveOrUpdateUser(userRegistrationDto);
-            user.setPassword("*****");
-            String message = "new user successfully registered";
-            ApiResponse<User> response = new ApiResponse<>(LocalDateTime.now(), HttpStatus.CREATED.value(), "success", message, user);
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (Exception e) {
-            ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.INTERNAL_SERVER_ERROR.value(), "error", e.getMessage());
-            log.error("registration failed with email '{}'", userRegistrationDto.getEmail());
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        User user = authService.saveOrUpdateUser(userRegistrationDto);
+        user.setPassword("*****");
+        String message = "new user successfully registered";
+        ApiResponse<User> response = ApiResponse.<User>builder().timestamp(LocalDateTime.now()).status("success").message(message).data(user).build();
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PostMapping("/authenticate")
     public ResponseEntity<?> authenticate(@Valid @RequestBody AuthRequestDto authRequestDto) throws Exception {
-        try {
-            LoginResponse response = new LoginResponse();
-            String token = authService.authenticate(authRequestDto);
-            response.setToken(token);
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (Exception e) {
-            ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.INTERNAL_SERVER_ERROR.value(), "error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        LoginResponse response = new LoginResponse();
+        String token = authService.authenticate(authRequestDto);
+        response.setToken(token);
+        return ResponseEntity.status(HttpStatus.OK).header("Authorization", token).body(response);
     }
 
     @GetMapping("/current-user")
@@ -77,16 +66,10 @@ public class AuthController {
     @PutMapping("/update")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER')")
     public ResponseEntity<?> updateUser(@Valid @RequestBody UserUpdateDto userUpdateDto) {
-        try {
-            User user = authService.saveOrUpdateUser(userUpdateDto);
-            user.setPassword("*****");
-            String message = "user account updated successfully";
-            ApiResponse<User> response = new ApiResponse<>(LocalDateTime.now(), HttpStatus.OK.value(), "success", message, user);
-            return ResponseEntity.status(HttpStatus.OK).body(response);
-        } catch (Exception e) {
-            ErrorResponse response = new ErrorResponse(LocalDateTime.now(), HttpStatus.INTERNAL_SERVER_ERROR.value(), "error", e.getMessage());
-            log.error("user account update failed with email '{}'", userUpdateDto.getEmail());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
+        User user = authService.saveOrUpdateUser(userUpdateDto);
+        user.setPassword("*****");
+        String message = "user account updated successfully";
+        ApiResponse<User> response = ApiResponse.<User>builder().timestamp(LocalDateTime.now()).status("success").message(message).data(user).build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

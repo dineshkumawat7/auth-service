@@ -6,12 +6,12 @@ import java.time.LocalDateTime;
 
 @Setter
 @Getter
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
-public class ErrorResponse {
+@NoArgsConstructor
+@Builder
+public class FieldValidationErrorResponse<T> {
     private LocalDateTime timestamp;
-    private int statusCode;
     private String status;
     private String message;
+    private T fields;
 }

@@ -1,4 +1,4 @@
-package com.ebit.authentication.config;
+package com.ebit.authentication.initializer;
 
 import com.ebit.authentication.entity.Role;
 import com.ebit.authentication.entity.User;
@@ -11,9 +11,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.UUID;
 
 @Component
 @Slf4j
@@ -27,26 +25,27 @@ public class AdminAccountInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        if (!authRepository.existsByEmail("dkumawat7627@gmail.com")) {
-            User user = new User();
-            user.setUsername(UUID.randomUUID().toString());
-            user.setFirstName("Dinesh");
-            user.setLastName("Kumawat");
-            user.setEmail("dkumawat7627@gmail.com");
-            user.setPhone("7627000907");
-            user.setPassword(passwordEncoder.encode("Admin"));
-            user.setCreatedAt(LocalDateTime.now());
-            user.setEnable(true);
+        String email = "dkumawat7627@gmail.com";
+        int index = email.indexOf("@");
+        if (!authRepository.existsByEmail(email)) {
             if (roleRepository.findByName("ROLE_ADMIN") == null) {
                 createAdminRole();
             }
-            Role role = roleRepository.findByName("ROLE_ADMIN");
-            user.setRoles(Collections.singletonList(role));
+            User user = User.builder()
+                    .username(email.substring(0, index))
+                    .firstName("Dinesh")
+                    .lastName("Kumawat")
+                    .email("dkumawat7627@gmail.com")
+                    .phone("7627000907")
+                    .password(passwordEncoder.encode("Admin"))
+                    .roles(Collections.singletonList(roleRepository.findByName("ROLE_ADMIN")))
+                    .build();
             authRepository.save(user);
             log.info("Admin account initialized with email {}", user.getEmail());
         }
     }
 
+    // create ROLE_ADMIN if role not exists
     private void createAdminRole() {
         Role role = new Role();
         role.setName("ROLE_ADMIN");
