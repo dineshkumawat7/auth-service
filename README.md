@@ -14,10 +14,10 @@ This is a Spring Boot-based authentication service that supports OAuth2, securit
 
 ## Prerequisites
 
--> Java 17 or above
--> Maven (for building the application)
--> Docker and Docker Compose (for running the application in containers)
--> MySQL Client (optional, for database access)
+-> Java 17 or above                                                                                                                                                                                                  
+-> Maven (for building the application)                                                        
+-> Docker and Docker Compose (for running the application in containers)                                                                   
+-> MySQL Client (optional, for database access)                                                         
 
 ## Docker Setup
 
